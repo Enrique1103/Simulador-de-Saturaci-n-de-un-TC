@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
+<title>Saturación del TC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: barra de casos arriba; a la izquierda el TC dibujado y animado, a la derecha la corriente en el tiempo; abajo una sola frase que explica lo que pasa */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#18222f; --muted:#5b6878; --line:#d5dbe3; --grid:#e6eaef;
+  --ideal:#8a96a6; --real:#1f5fbf; --flux:#d97706; --sat:#c0392b; --core:#9aa7b8; --cu:#b8742a; --chip:#f3f6fa;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161d; --panel:#19212b; --ink:#e7ecf2; --muted:#9aa6b5; --line:#2c3744; --grid:#232d38;
+  --ideal:#7d899a; --real:#6aa3ff; --flux:#f5a524; --sat:#ff6b5b; --core:#5d6b7c; --cu:#d9944a; --chip:#202a35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161d; --panel:#19212b; --ink:#e7ecf2; --muted:#9aa6b5; --line:#2c3744; --grid:#232d38;
+  --ideal:#7d899a; --real:#6aa3ff; --flux:#f5a524; --sat:#ff6b5b; --core:#5d6b7c; --cu:#d9944a; --chip:#202a35; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding-block:20px 28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+h1{font-family:var(--f-display);font-weight:700;font-size:30px;margin:0;text-wrap:balance}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar .cases{display:flex;flex-wrap:wrap;gap:6px}
+button,select{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--real)}
+button:focus-visible,select:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--real);outline-offset:2px}
+button.on{border-color:var(--real);box-shadow:inset 0 0 0 1px var(--real);color:var(--real);font-weight:600}
+.spacer{flex:1}
+.case{position:relative;display:inline-flex;align-items:center;gap:4px}
+.inf{width:24px;height:24px;padding:0;border-radius:999px;display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--real);border-color:var(--real);background:var(--panel)}
+.inf[aria-expanded="true"]{background:var(--real);color:var(--panel)}
+.pop{position:absolute;top:calc(100% + 8px);left:0;z-index:5;width:min(300px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-size:13px;line-height:1.45;color:var(--ink)}
+.pop b{display:block;margin-bottom:4px;font-family:var(--f-display);font-size:15px}
+#go{background:var(--real);border-color:var(--real);color:#fff;font-weight:600;min-width:110px}
+:root[data-theme="dark"] #go{color:#0b1220}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #go{color:#0b1220}}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+summary{cursor:pointer;padding:8px 14px;font-weight:500;color:var(--muted);list-style-position:inside}
+.adj{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 20px;padding:4px 14px 14px}
+@media (max-width:800px){.adj{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:440px){.adj{grid-template-columns:minmax(0,1fr)}}
+.ctl{display:grid;gap:2px;min-width:0}
+.ctl .row{display:flex;justify-content:space-between;gap:8px}
+.ctl output{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.ctl small{color:var(--muted);font-size:12px}
+input[type=range]{width:100%;accent-color:var(--real)}
+.main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.card h2{font-family:var(--f-display);font-size:17px;font-weight:600;margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+canvas{width:100%;display:block}
+#cI,#cB{height:400px}
+.msg{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;display:flex;gap:14px;align-items:center;min-height:64px}
+.msg .n{font-family:var(--f-mono);font-size:13px;color:#fff;background:var(--real);border-radius:999px;width:28px;height:28px;display:grid;place-items:center;flex:none}
+.msg.sat .n{background:var(--sat)}
+.msg p{margin:0;font-size:17px}
+.msg.sat{border-color:var(--sat)}
+.foot{font-size:12px;color:var(--muted);margin:0}
+</style>
+
+<div class="wrap">
+  <h1>Saturación del transformador de corriente</h1>
+
+  <div class="bar">
+    <div class="cases" role="group" aria-label="Casos">
+      <span class="case"><button id="p1" data-p="1">Normal</button><button class="inf" data-i="1" aria-label="Qué es: Normal" aria-expanded="false">!</button><span class="pop" id="i1" hidden><b>Normal</b>Corriente nominal, sin falla. El núcleo trabaja en la zona lineal de la curva B-H y el TC copia la corriente tal cual: las dos curvas coinciden.</span></span>
+      <span class="case"><button id="p2" data-p="2">Mucha corriente</button><button class="inf" data-i="2" aria-label="Qué es: Mucha corriente" aria-expanded="false">!</button><span class="pop" id="i2" hidden><b>Mucha corriente</b>Falla de 30 veces la nominal, sin componente de continua. Es la causa más directa: el flujo necesario supera el codo en cada medio ciclo y la onda que llega al relé sale recortada.</span></span>
+      <span class="case"><button id="p3" data-p="3">Falla con continua</button><button class="inf" data-i="3" aria-label="Qué es: Falla con continua" aria-expanded="false">!</button><span class="pop" id="i3" hidden><b>Falla con continua</b>Al inicio de una falla la corriente viene desplazada hacia un lado (componente de continua, depende de la relación X/R de la red). Esa parte no se invierte, el flujo se acumula ciclo a ciclo y el TC satura aunque la falla sea menor (15 veces). Se recupera cuando la continua se apaga.</span></span>
+      <span class="case"><button id="p4" data-p="4">Núcleo ya magnetizado</button><button class="inf" data-i="4" aria-label="Qué es: Núcleo ya magnetizado" aria-expanded="false">!</button><span class="pop" id="i4" hidden><b>Núcleo ya magnetizado</b>El núcleo quedó magnetizado (remanencia) de una falla o maniobra anterior y arranca "medio lleno". Con una falla de solo 8 veces la nominal igual llega al codo.</span></span>
+    </div>
+    <span class="spacer"></span>
+    <button id="go">▶ Animar</button>
+  </div>
+
+  <details>
+    <summary>Ajustes</summary>
+    <div class="adj">
+      <div class="ctl"><div class="row"><label for="M">Corriente de falla</label><output id="oM"></output></div><input type="range" id="M" min="1" max="40" step="1"><small>veces la nominal del TC</small></div>
+      <div class="ctl"><div class="row"><label for="R">Carga del secundario</label><output id="oR"></output></div><input type="range" id="R" min="0.25" max="4" step="0.25"><small>relé + cables (1 = nominal)</small></div>
+      <div class="ctl"><div class="row"><label for="X">Continua (X/R)</label><output id="oX"></output></div><input type="range" id="X" min="0" max="30" step="1"><small>0 = sin continua</small></div>
+      <div class="ctl"><div class="row"><label for="Rm">Remanencia</label><output id="oRm"></output></div><input type="range" id="Rm" min="0" max="80" step="5"><small>% del núcleo ya lleno</small></div>
+    </div>
+  </details>
+
+  <div class="main">
+    <div class="card">
+      <h2>Corriente real y corriente que llega al relé</h2>
+      <div class="legend"><span><i style="background:var(--ideal)"></i>real (lo que debería medir)</span><span><i style="background:var(--real)"></i>la que recibe el relé</span></div>
+      <canvas id="cI" aria-label="Corrientes en el tiempo"></canvas>
+    </div>
+    <div class="card">
+      <h2>Curva de magnetización del núcleo (B-H)</h2>
+      <div class="legend"><span><i style="background:var(--muted)"></i>curva del núcleo</span><span><i style="background:var(--flux)"></i>punto de trabajo</span></div>
+      <canvas id="cB" aria-label="Curva B-H con el punto de trabajo"></canvas>
+    </div>
+  </div>
+
+  <div class="msg" id="msg"><div class="n" id="mn">1</div><p id="mt"></p></div>
+  <p class="foot">Modelo simplificado para enseñar: carga resistiva y curva de magnetización sin histéresis. La falla empieza a los 40 ms.</p>
+</div>
+
+<script>
+(function(){
+const W=2*Math.PI*50, CYC=0.02, NP=400, DT=CYC/NP, NC=12, N=NC*NP, KF=2*NP, TF=KF*DT;
+const LS=0.09, LM=0.45, LSAT=0.0005;
+const $=id=>document.getElementById(id);
+const P={};
+let S=null, cursor=N, playing=false, last=0, phase=0;
+
+const Q=14;function im(x){return x/LM*(1+Math.pow(Math.abs(x)/LS,Q))}
+function dim(x){return (1+(Q+1)*Math.pow(Math.abs(x)/LS,Q))/LM}
+const KNEE=1.05*LS;
+function ip(k){const t=k*DT;if(k<KF)return Math.SQRT2*Math.sin(W*t);const tp=t-TF;
+  if(P.X>0){const tau=P.X/W;return P.M*Math.SQRT2*(Math.exp(-tp/tau)-Math.cos(W*tp));}
+  return P.M*Math.SQRT2*Math.sin(W*tp);}
+function simulate(){
+  const xr=P.Rm/100*LS, i0=im(xr);
+  const a={ip:new Float32Array(N),is:new Float32Array(N),x:new Float32Array(N)};
+  let x=xr;
+  for(let k=0;k<N;k++){const p=ip(k);let y=x;
+    for(let it=0;it<40;it++){const g=y-x-DT*P.R*(p-im(y)+i0);const ny=y-g/(1+DT*P.R*dim(y));if(Math.abs(ny-y)<1e-10){y=ny;break}y=ny}
+    x=y;a.ip[k]=p;a.is[k]=p-(im(x)-i0);a.x[k]=x;}
+  a.max=0;for(let k=0;k<N;k++)a.max=Math.max(a.max,Math.abs(a.ip[k]));
+  a.sat=new Uint8Array(N);let s=0;for(let k=0;k<N;k++){if(Math.abs(a.x[k])>=KNEE)s=1;a.sat[k]=s}
+  S=a;
+}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function setup(c){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  if(c.width!==Math.round(r.width*d)||c.height!==Math.round(r.height*d)){c.width=Math.round(r.width*d);c.height=Math.round(r.height*d)}
+  const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,r.width,r.height);return{g,w:r.width,h:r.height}}
+function fmt(v){const s=Math.abs(v)<1e-9?'0':(Math.abs(v)>=10?v.toFixed(0):v.toFixed(1).replace(/\.0$/,''));return s.replace('.',',')}
+function rms(arr,n){const a=Math.max(0,n-NP);let s=0;for(let k=a;k<n;k++)s+=arr[k]*arr[k];return Math.sqrt(s/Math.max(1,n-a))}
+function mix(c1,c2,t){const h=c=>{c=c.replace('#','');return[0,2,4].map(i=>parseInt(c.substr(i,2),16))};const a=h(c1),b=h(c2);return'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')'}
+const MONO='"IBM Plex Mono", ui-monospace, monospace', BODY='"IBM Plex Sans", system-ui, sans-serif';
+
+// flechitas que se mueven a lo largo de un tramo
+function flow(g,x1,y1,x2,y2,val,maxv,col,ph){
+  const L=Math.hypot(x2-x1,y2-y1);if(L<1)return;const ux=(x2-x1)/L,uy=(y2-y1)/L;const a=Math.min(1,Math.abs(val)/maxv);if(a<0.03)return;
+  const dir=Math.sign(val),sp=30,sz=3+4*a;g.fillStyle=col;g.globalAlpha=0.35+0.65*a;
+  for(let d=((ph*dir)%sp+sp)%sp;d<L;d+=sp){const cx=x1+ux*d,cy=y1+uy*d,fx=ux*dir,fy=uy*dir;
+    g.beginPath();g.moveTo(cx+fx*sz,cy+fy*sz);g.lineTo(cx-fx*sz-fy*sz*0.8,cy-fy*sz+fx*sz*0.8);g.lineTo(cx-fx*sz+fy*sz*0.8,cy-fy*sz-fx*sz*0.8);g.closePath();g.fill()}
+  g.globalAlpha=1}
+
+function drawB(n){
+  const {g,w,h}=setup($('cB'));const k=Math.max(0,n-1);
+  const L=30,T=14,Rr=w-14,B=h-30;const ym=1.42*LS,xm=im(ym);
+  const X=v=>L+(Rr-L)*(v+xm)/(2*xm),Y=v=>T+(B-T)*(1-(v+ym)/(2*ym));
+  const grid=css('--grid'),mut=css('--muted'),sat=css('--sat'),fl=css('--flux'),ink=css('--ink');
+  // zona de saturación sombreada
+  g.fillStyle=sat;g.globalAlpha=0.07;g.fillRect(X(im(KNEE)),T,Rr-X(im(KNEE)),Y(KNEE)-T);g.fillRect(L,Y(-KNEE),X(-im(KNEE))-L,B-Y(-KNEE));g.globalAlpha=1;
+  g.strokeStyle=grid;g.lineWidth=1;g.beginPath();g.moveTo(X(0),T);g.lineTo(X(0),B);g.moveTo(L,Y(0));g.lineTo(Rr,Y(0));g.stroke();
+  g.font='12px '+BODY;g.fillStyle=mut;g.textAlign='right';g.fillText('H',Rr,Y(0)-6);g.textAlign='left';g.fillText('B',X(0)+6,T+10);
+  g.textAlign='center';g.fillText('H: corriente que magnetiza el núcleo',(L+Rr)/2,h-8);
+  // curva
+  g.strokeStyle=mut;g.lineWidth=2.5;g.beginPath();
+  for(let i=0;i<=600;i++){const b=-ym+2*ym*i/600;const x=X(im(b)),y=Y(b);i?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();
+  // etiquetas de zonas
+  g.font='600 12px '+BODY;
+  g.fillStyle=mut;g.textAlign='left';g.fillText('zona lineal',X(0)+10,Y(LS*0.45));
+  g.fillStyle=fl;g.fillText('codo',X(im(KNEE))+8,Y(KNEE)+16);
+  g.fillStyle=sat;g.textAlign='right';g.fillText('saturación: B casi no sube',Rr-4,Y(ym*0.98)+14);
+  // rastro del último ciclo
+  const k0=Math.max(0,k-NP);g.strokeStyle=fl;g.globalAlpha=0.35;g.lineWidth=3;g.beginPath();
+  for(let j=k0;j<=k;j+=2){const x=X(Math.max(-xm,Math.min(xm,im(S.x[j])))),y=Y(Math.max(-ym,Math.min(ym,S.x[j])));j===k0?g.moveTo(x,y):g.lineTo(x,y)}g.stroke();g.globalAlpha=1;
+  const px=X(Math.max(-xm,Math.min(xm,im(S.x[k])))),py=Y(Math.max(-ym,Math.min(ym,S.x[k])));
+  g.fillStyle=Math.abs(S.x[k])>=KNEE?sat:fl;g.beginPath();g.arc(px,py,7,0,7);g.fill();g.strokeStyle=css('--panel');g.lineWidth=2;g.stroke();
+}
+function drawI(n,mk){
+  const {g,w,h}=setup($('cI'));const L=44,T=12,R=w-22,B=h-24;const yy=Math.max(2,S.max*1.08);
+  const grid=css('--grid'),mut=css('--muted');
+  const X=k=>L+(R-L)*k/N,Y=v=>T+(B-T)*(1-(v+yy)/(2*yy));
+  g.strokeStyle=grid;g.lineWidth=1;g.font='11px '+MONO;g.fillStyle=mut;
+  g.textAlign='center';g.textBaseline='top';const cs=w<520?4:2;for(let c=0;c<=NC;c+=cs){const x=X(c*NP);g.beginPath();g.moveTo(x,T);g.lineTo(x,B);g.stroke();g.fillText(c*20+' ms',x,B+5)}
+  g.beginPath();g.moveTo(L,Y(0));g.lineTo(R,Y(0));g.stroke();
+  g.textAlign='right';g.textBaseline='middle';g.fillText('0',L-6,Y(0));
+  g.strokeStyle=mut;g.setLineDash([4,4]);g.beginPath();g.moveTo(X(KF),T);g.lineTo(X(KF),B);g.stroke();g.setLineDash([]);
+  g.textAlign='left';g.textBaseline='top';g.fillText('falla',X(KF)+5,T);
+  const ln=(arr,col,wd,dash)=>{g.strokeStyle=col;g.lineWidth=wd;g.setLineDash(dash||[]);g.beginPath();const st=Math.max(1,Math.floor(n/1600));for(let k=0;k<n;k+=st){const x=X(k),y=Y(arr[k]);k?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();g.setLineDash([])};
+  ln(S.ip,css('--ideal'),2.2,[6,4]);ln(S.is,css('--real'),2.6);
+  const cm=mk||(n<N?n:null);if(cm){g.strokeStyle=css('--ink');g.globalAlpha=.35;g.lineWidth=1.5;g.beginPath();g.moveTo(X(cm),T);g.lineTo(X(cm),B);g.stroke();g.globalAlpha=1}
+}
+const MSG={1:'Corriente normal: el núcleo trabaja holgado y el TC copia la corriente tal cual.',
+  2:'Llegó la falla: la corriente sube y el núcleo se va llenando de flujo.',
+  3:'El núcleo se llenó (saturó): la corriente ya no pasa al secundario y el relé recibe una onda recortada.',
+  4:'El relé midió menos corriente de la real: cree que la falla es más chica de lo que es.'};
+function stage(n){const k=Math.max(0,n-1);let st=1;if(k>=KF){st=2;if(Math.abs(S.x[k])>=KNEE)st=3;else if(S.sat[k])st=4}
+  $('mn').textContent=st;$('mt').textContent=MSG[st];$('msg').classList.toggle('sat',st>=3)}
+let snap=null;
+function draw(){const n=Math.max(2,Math.min(N,Math.round(cursor)));const t=(!playing&&snap)?snap:n;drawB(t);drawI(n,playing?null:snap);stage(t)}
+
+const PRE={1:{M:1,R:1,X:0,Rm:0},2:{M:30,R:1,X:0,Rm:0},3:{M:15,R:1,X:15,Rm:0},4:{M:8,R:1,X:8,Rm:70}};
+function sync(){[['M',v=>v+' ×'],['R',v=>fmt(+v)],['X',v=>v],['Rm',v=>v+' %']].forEach(([i,f])=>{$(i).value=P[i];$('o'+i).textContent=f(P[i])})}
+function mark(p){for(let i=1;i<=4;i++)$('p'+i).classList.toggle('on',i==p)}
+['M','R','X','Rm'].forEach(id=>$(id).addEventListener('input',e=>{P[id]=+e.target.value;sync();mark(0);simulate();if(!playing){cursor=N;snap=null}draw()}));
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{Object.assign(P,PRE[b.dataset.p]);sync();mark(b.dataset.p);simulate();play(true)}));
+function closePops(ex){document.querySelectorAll('.inf').forEach(b=>{if(b.dataset.i!==ex){b.setAttribute('aria-expanded','false');$('i'+b.dataset.i).hidden=true}})}
+document.querySelectorAll('.inf').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const p=$('i'+b.dataset.i);closePops(b.dataset.i);p.hidden=!p.hidden;b.setAttribute('aria-expanded',String(!p.hidden))}));
+document.addEventListener('click',e=>{if(!e.target.closest('.pop'))closePops(null)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePops(null)});
+function play(restart){snap=null;if(restart||cursor>=N)cursor=1;playing=true;last=performance.now();$('go').textContent='❚❚ Pausa';requestAnimationFrame(tick)}
+function stop(){playing=false;$('go').textContent='▶ Animar'}
+$('go').addEventListener('click',()=>playing?stop():play(false));
+function tick(now){if(!playing)return;const dt=Math.min(0.1,(now-last)/1000);last=now;const slow=150;
+  cursor+=dt/slow/DT;phase+=dt*40;if(cursor>=N){cursor=N;draw();stop();return}draw();requestAnimationFrame(tick)}
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(draw,60)});
+try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw)}catch(e){}
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+Object.assign(P,PRE[3]);mark(3);sync();simulate();
+// estado inicial: detenido en un instante con el núcleo saturado
+cursor=N;snap=KF+Math.round(NP*0.6);for(let k=KF;k<N;k++){if(Math.abs(S.x[k])>=KNEE*1.1){snap=k;break}}
+draw();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(draw);
+})();
+</script>
+
+</html>
