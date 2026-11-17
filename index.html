@@ -64,6 +64,22 @@ canvas{width:100%;display:block}
 .msg p{margin:0;font-size:17px}
 .msg.sat{border-color:var(--sat)}
 .foot{font-size:12px;color:var(--muted);margin:0}
+@media (max-width:600px){
+  h1{font-size:23px}
+  .bar{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+  .bar .cases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .case{display:flex;min-width:0;align-items:stretch}
+  .case .inf{align-self:center;flex:none}
+  .case button[data-p]{flex:1;min-width:0;text-align:left;padding:8px 10px;font-size:13px;line-height:1.25}
+  .case:nth-child(even) .pop{left:auto;right:0}
+  .spacer{display:none}
+  #go{width:100%;padding:10px}
+  #cI{height:250px} #cB{height:290px}
+  .card{padding:10px 12px}
+  .card h2{font-size:15px}
+  .msg{position:sticky;bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:4;padding:10px 12px;min-height:0;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+  .msg p{font-size:14px}
+}
 </style>
 
 <div class="wrap">
@@ -157,7 +173,7 @@ function drawB(n){
   // zona de saturación sombreada
   g.fillStyle=sat;g.globalAlpha=0.07;g.fillRect(X(im(KNEE)),T,Rr-X(im(KNEE)),Y(KNEE)-T);g.fillRect(L,Y(-KNEE),X(-im(KNEE))-L,B-Y(-KNEE));g.globalAlpha=1;
   g.strokeStyle=grid;g.lineWidth=1;g.beginPath();g.moveTo(X(0),T);g.lineTo(X(0),B);g.moveTo(L,Y(0));g.lineTo(Rr,Y(0));g.stroke();
-  g.font='12px '+BODY;g.fillStyle=mut;g.textAlign='right';g.fillText('H',Rr,Y(0)-6);g.textAlign='left';g.fillText('B',X(0)+6,T+10);
+  g.font='12px '+BODY;g.fillStyle=mut;g.textAlign='right';g.fillText('H',Rr,Y(0)-6);g.fillText('B',X(0)-6,T+10);
   g.textAlign='center';g.fillText('H: corriente que magnetiza el núcleo',(L+Rr)/2,h-8);
   // curva
   g.strokeStyle=mut;g.lineWidth=2.5;g.beginPath();
@@ -166,7 +182,7 @@ function drawB(n){
   g.font='600 12px '+BODY;
   g.fillStyle=mut;g.textAlign='left';g.fillText('zona lineal',X(0)+10,Y(LS*0.45));
   g.fillStyle=fl;g.fillText('codo',X(im(KNEE))+8,Y(KNEE)+16);
-  g.fillStyle=sat;g.textAlign='right';g.fillText('saturación: B casi no sube',Rr-4,Y(ym*0.98)+14);
+  g.fillStyle=sat;g.textAlign='right';g.fillText(w<520?'saturación':'saturación: B casi no sube',Rr-4,Y(ym*0.98)+14);
   // rastro del último ciclo
   const k0=Math.max(0,k-NP);g.strokeStyle=fl;g.globalAlpha=0.35;g.lineWidth=3;g.beginPath();
   for(let j=k0;j<=k;j+=2){const x=X(Math.max(-xm,Math.min(xm,im(S.x[j])))),y=Y(Math.max(-ym,Math.min(ym,S.x[j])));j===k0?g.moveTo(x,y):g.lineTo(x,y)}g.stroke();g.globalAlpha=1;
